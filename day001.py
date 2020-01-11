@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+from __future__ import print_function
 
 
 def fuel_calc(mass):
@@ -39,19 +40,24 @@ def fuel_cost(mass):
   return total_cost
 
 
-def process(filename='day001-input.txt'):
-  masses = []
+def read_file(filename):
   with open(filename, 'r') as file:
     for line in file:
-      line = line.strip()
+      line = line.rstrip()
       if not line or line[0] == '#':
         continue
-      masses.append(int(line))
-  return sum(fuel_cost(mass) for mass in masses)
+      yield line
+
+
+def process(filename='day001_input.txt'):
+  masses = [int(line) for line in read_file(filename)]
+  part1 = sum(fuel_calc(mass) for mass in masses)
+  print('Day1, Part1 answer: {0}'.format(part1))
+  part2 = sum(fuel_cost(mass) for mass in masses)
+  print('Day1, Part2 answer: {0}'.format(part2))
 
 
 if __name__ == '__main__':
   import doctest
   doctest.testmod()
-  result = process()
-  print result
+  process()
