@@ -69,6 +69,7 @@ class Path(object):
   def __init__(self, instructions=None):
     self.start = Coord(0, 0)
     self.visited = set()
+    self.distances = {}
     self.path = [self.start]
     if instructions is not None:
       self.follow_instructions(instructions)
@@ -80,12 +81,15 @@ class Path(object):
       for coord in current_position.follow_vector(direction, distance):
         self.visited.add(coord)
         self.path.append(coord)
+        if coord not in self.distances:
+          self.distances[coord] = len(self.path) - 1
 
   def distance_to_point(self, point):
     if point not in self.visited:
       raise ValueError("This path doesn't visit {0!r}".format(point))
     else:
-      return self.path.index(point)
+      # return self.path.index(point)
+      return self.distances[point]
 
   @staticmethod
   def parse_vector(vector):
@@ -147,5 +151,12 @@ def part2_main(filename='day003_input.txt'):
 
 
 if __name__ == '__main__':
+  from time import time
+  t1 = time()
   part1_main()
+  t2 = time()
+  print('Day003, Part1 took {0:.2f}s'.format(t2 - t1))
+  t1 = time()
   part2_main()
+  t2 = time()
+  print('Day003, Part2 took {0:.2f}s'.format(t2 - t1))
