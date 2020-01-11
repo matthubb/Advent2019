@@ -81,14 +81,17 @@ class Processor(object):
 
   @classmethod
   def resolve_op(cls, op):
-    methodname = 'OP_{1}'.format(op)
+    methodname = 'OP_{0}'.format(op)
     if hasattr(cls, methodname):
       opfunc = getattr(cls, methodname)
-      param_count = opfunc.__dict__.get('params', 3)
-      assert 0 <= param_count <= 3, "Invalid number of parameters for code {0}: {1}".format(methodname, param_count)
-      return opfunc, param_count
     else:
       raise NotImplementedError(methodname)
+
+    params = 'OP_{0}_params'.format(op)
+    # param_count = opfunc.__dict__.get('params', 3)
+    param_count = getattr(cls, params, 3)
+    assert 0 <= param_count <= 3, "Invalid number of parameters for code {0}: {1}".format(methodname, param_count)
+    return opfunc, param_count
 
   @staticmethod
   def OP_1(ctx, params_modes):
@@ -97,7 +100,7 @@ class Processor(object):
     param2 = ctx.read_location(*params_modes[1])
     result = param1 + param2
     ctx.write_location(result, *params_modes[2])
-  OP_1.params = 3
+  OP_1_params = 3
 
   @staticmethod
   def OP_2(ctx, params_modes):
@@ -106,10 +109,17 @@ class Processor(object):
     param2 = ctx.read_location(*params_modes[1])
     result = param1 * param2
     ctx.write_location(result, *params_modes[2])
-  OP_2.params = 3
+  OP_2_params = 3
 
   @staticmethod
   def OP_99(ctx, params_modes):
     """Halt"""
-    ctx.state = States.Halt
-  OP_99.params = 0
+    ctx.state = States.HALT
+  OP_99_params = 0
+
+
+def run_code(code):
+  ctx = Context()
+  ctx.load(code)
+  Processor.run(ctx)
+  return ctx.dump()
