@@ -11,6 +11,8 @@ class Context(object):
     self.relative_base = 0
     self.state = States.WAIT
     self.cycles = 0
+    self.input = []
+    self.output = []
 
   def load(self, program):
     # Receive a program into memory
@@ -38,6 +40,14 @@ class Context(object):
       self.code[self.relative_base + offset] = value
     else:
       raise ValueError('Unhandled write parameter mode {0}'.format(mode))
+
+  def read_input(self):
+    if not self.input:
+      raise Exception('No input available')
+    return self.input.pop(0)
+
+  def save_output(self, value):
+    self.output.append(value)
 
 
 class Processor(object):
@@ -112,6 +122,20 @@ class Processor(object):
   OP_2_params = 3
 
   @staticmethod
+  def OP_3(ctx, params_modes):
+    """INPUT"""
+    result = ctx.read_input()
+    ctx.write_location(result, *params_modes[0])
+  OP_3_params = 1
+
+  @staticmethod
+  def OP_4(ctx, params_modes):
+    """OUTPUT"""
+    param1 = ctx.read_location(*params_modes[0])
+    ctx.save_output(param1)
+  OP_4_params = 1
+
+  @staticmethod
   def OP_99(ctx, params_modes):
     """Halt"""
     ctx.state = States.HALT
@@ -123,3 +147,11 @@ def run_code(code):
   ctx.load(code)
   Processor.run(ctx)
   return ctx.dump()
+
+
+def run_with_io(code, *input):
+  ctx = Context()
+  ctx.load(code)
+  ctx.input.extend(input)
+  Processor.run(ctx)
+  return (ctx.dump(), tuple(ctx.output))

@@ -1,6 +1,6 @@
 import pytest
 
-from computer import Context, Processor, States, run_code
+from computer import Context, Processor, States, run_code, run_with_io
 
 
 def test_context_load_dump():
@@ -29,3 +29,12 @@ def test_day2():
   assert run_code('2,3,0,3,99') == '2,3,0,6,99'
   assert run_code('2,4,4,5,99,0') == '2,4,4,5,99,9801'
   assert run_code('1,1,1,4,99,5,6,0,99') == '30,1,1,4,2,5,6,0,99'
+
+
+def test_day5():
+  # Immediate mode
+  assert run_code('1101,100,-1,4,0') == '1101,100,-1,4,99'
+  assert run_code('1002,4,3,4,33') == '1002,4,3,4,99'
+  # Input / Output
+  assert run_with_io('3,3,1101,0,10,0,99', 20) == ('30,3,1101,20,10,0,99', ())
+  assert run_with_io('104,77,99') == ('104,77,99', (77,))
