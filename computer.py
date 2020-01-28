@@ -74,11 +74,15 @@ class Processor(object):
     params = []
     for i in range(param_count):
       params.append(code[ctx.instruction_pointer + 1 + i])
-    # FIXME - do this better.
+    # Make a note of the instruction pointer
+    track_ip = ctx.instruction_pointer
+    # FIXME - do this better. Prepping parameters and modes for opfunc
     params_modes = zip(params, modes)
+    # Run the opfunc with the context and parameters with their modes.
     opfunc(ctx, params_modes)
-    # Ramp instruction pointer
-    ctx.instruction_pointer += 1 + param_count
+    # Ramp instruction pointer if unmodified by opfunc
+    if ctx.instruction_pointer == track_ip:
+      ctx.instruction_pointer += 1 + param_count
     # Keep track of how many operations have been processed
     ctx.cycles += 1
 
@@ -136,6 +140,48 @@ class Processor(object):
   OP_4_params = 1
 
   @staticmethod
+  def OP_5(ctx, params_modes):
+    """JUMP IF TRUE"""
+    param1 = ctx.read_location(*params_modes[0])
+    param2 = ctx.read_location(*params_modes[1])
+    if param1 != 0:
+      ctx.instruction_pointer = param2
+  OP_5_params = 2
+
+  @staticmethod
+  def OP_6(ctx, params_modes):
+    """JUMP IF FALSE"""
+    param1 = ctx.read_location(*params_modes[0])
+    param2 = ctx.read_location(*params_modes[1])
+    if param1 == 0:
+      ctx.instruction_pointer = param2
+  OP_6_params = 2
+
+  @staticmethod
+  def OP_7(ctx, params_modes):
+    """LESS THAN"""
+    param1 = ctx.read_location(*params_modes[0])
+    param2 = ctx.read_location(*params_modes[1])
+    if param1 < param2:
+      result = 1
+    else:
+      result = 0
+    ctx.write_location(result, *params_modes[2])
+  OP_7_params = 3
+
+  @staticmethod
+  def OP_8(ctx, params_modes):
+    """LESS THAN"""
+    param1 = ctx.read_location(*params_modes[0])
+    param2 = ctx.read_location(*params_modes[1])
+    if param1 == param2:
+      result = 1
+    else:
+      result = 0
+    ctx.write_location(result, *params_modes[2])
+  OP_8_params = 3
+
+  @staticmethod
   def OP_99(ctx, params_modes):
     """Halt"""
     ctx.state = States.HALT
@@ -155,3 +201,8 @@ def run_with_io(code, *input):
   ctx.input.extend(input)
   Processor.run(ctx)
   return (ctx.dump(), tuple(ctx.output))
+
+
+def run_with_just_io(code, *input):
+  end_code, output = run_with_io(code, *input)
+  return output
