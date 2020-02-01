@@ -5,18 +5,34 @@ from enum import Enum
 States = Enum('RUN', 'WAIT', 'HALT')
 
 
+class SignalInput(Exception):
+  pass
+
+
+class SignalHalt(Exception):
+  pass
+
+
 class Context(object):
-  def __init__(self):
+  def __init__(self, code=None, input=None):
     self.instruction_pointer = 0
     self.relative_base = 0
-    self.state = States.WAIT
+    self.state = States.RUN
     self.cycles = 0
-    self.input = []
+    self.input = [] if input is None else input
     self.output = []
+    if code:
+      self.load(code)
+    else:
+      self.code = []
 
   def load(self, program):
     # Receive a program into memory
-    self.code = [int(x) for x in program.strip().split(',')]
+    self.code = self.deserialise(program)
+
+  @staticmethod
+  def deserialise(program):
+    return [int(x) for x in program.strip().split(',')]
 
   def dump(self):
     # Serialise
@@ -43,23 +59,41 @@ class Context(object):
 
   def read_input(self):
     if not self.input:
-      raise Exception('No input available')
+      raise SignalInput()
     return self.input.pop(0)
 
   def save_output(self, value):
     self.output.append(value)
 
+  @property
+  def complete(self):
+    return self.state == States.HALT
+
+  @property
+  def waiting(self):
+    return self.state == States.WAIT
+
 
 class Processor(object):
   @classmethod
   def run(cls, ctx, cycle_limit=1000):
+    if ctx.state == States.HALT:
+      raise Exception("Context status == HALT")
+
+    ctx.state = States.RUN
     while True:
-      if ctx.state == States.HALT:
-        break
-      elif ctx.cycles > cycle_limit:
+      if ctx.cycles > cycle_limit:
         raise Exception("How big is this program? Exceeded cycle_limit, {0}".format(cycle_limit))
       # Run an operation
-      cls.process_operation(ctx)
+      try:
+        cls.process_operation(ctx)
+      except SignalInput:
+        ctx.state = States.WAIT
+      except SignalHalt:
+        ctx.state = States.HALT
+      #
+      if ctx.state != States.RUN:
+        break
 
   @classmethod
   def process_operation(cls, ctx):
@@ -184,7 +218,8 @@ class Processor(object):
   @staticmethod
   def OP_99(ctx, params_modes):
     """Halt"""
-    ctx.state = States.HALT
+    # ctx.state = States.HALT
+    raise SignalHalt()
   OP_99_params = 0
 
 
@@ -192,6 +227,7 @@ def run_code(code):
   ctx = Context()
   ctx.load(code)
   Processor.run(ctx)
+  assert ctx.complete
   return ctx.dump()
 
 
@@ -200,6 +236,7 @@ def run_with_io(code, *input):
   ctx.load(code)
   ctx.input.extend(input)
   Processor.run(ctx)
+  assert ctx.complete
   return (ctx.dump(), tuple(ctx.output))
 
 
